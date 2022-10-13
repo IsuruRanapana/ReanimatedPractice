@@ -1,56 +1,45 @@
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React from 'react';
+import { StyleSheet } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
+  useAnimatedScrollHandler,
   useSharedValue,
-  withRepeat,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
+import { Page } from './src/components/page/Page';
 
-const SIZE = 100.0;
+const WORDS = ['Apple', 'Orange', 'Banana', 'Mango', 'Grapes','Avocado'];
 
-const handleRotation = (progress:Animated.SharedValue<number>) => {
-  'worklet';
-  return `${progress.value*2*Math.PI}rad`;
-};
 export default function App() {
+  const translateX = useSharedValue(0);
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "white",
-      alignItems: "center",
-      justifyContent: "center",
-    },
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    translateX.value = event.contentOffset.x;
   });
-
-
-
-  useEffect(() => {
-    progress.value = withRepeat(withSpring(0.5),3,true);
-    scale.value = withRepeat(withSpring(1),3,true)
-  }, []);
-  const progress = useSharedValue(1);
-  const scale = useSharedValue(2);
-  const reanimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: progress.value,
-      borderRadius: (progress.value *SIZE)/2,
-      transform:[{scale: scale.value},{rotate: handleRotation(progress)}]
-    };
-  });
-
-
 
   return (
-    <View style={styles.container}>
-      <Animated.View
-        style={
-          [{ height: SIZE, width: SIZE, backgroundColor: "blue" },
-            reanimatedStyle,
-          ]} />
-    </View>
+    <Animated.ScrollView
+      onScroll={scrollHandler}
+      pagingEnabled
+      scrollEventThrottle={16}
+      horizontal
+      style={styles.container}
+    >
+      {WORDS.map((title, index) => {
+        return (
+          <Page
+            key={index.toString()}
+            title={title}
+            translateX={translateX}
+            index={index}
+          />
+        );
+      })}
+    </Animated.ScrollView>
   );
-
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+});
