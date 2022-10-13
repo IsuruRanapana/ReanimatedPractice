@@ -1,56 +1,98 @@
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withSpring,
-  withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-const SIZE = 100.0;
+import {
+  GestureHandlerRootView,
+  PanGestureHandler,
+  PanGestureHandlerGestureEvent,
+} from 'react-native-gesture-handler';
 
-const handleRotation = (progress:Animated.SharedValue<number>) => {
-  'worklet';
-  return `${progress.value*2*Math.PI}rad`;
+const SIZE = 80.0;
+const CIRCLE_RADIUS = SIZE * 2;
+
+type ContextType = {
+  translateX: number;
+  translateY: number;
 };
-export default function App() {
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "white",
-      alignItems: "center",
-      justifyContent: "center",
+export default function App() {
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  const panGestureEvent = useAnimatedGestureHandler<
+    PanGestureHandlerGestureEvent,
+    ContextType
+    >({
+    onStart: (event, context) => {
+      context.translateX = translateX.value;
+      context.translateY = translateY.value;
+    },
+    onActive: (event, context) => {
+      translateX.value = event.translationX + context.translateX;
+      translateY.value = event.translationY + context.translateY;
+    },
+    onEnd: () => {
+      const distance = Math.sqrt(translateX.value ** 2 + translateY.value ** 2);
+
+      if (distance < CIRCLE_RADIUS + SIZE / 2) {
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+      }
     },
   });
 
-
-
-  useEffect(() => {
-    progress.value = withRepeat(withSpring(0.5),3,true);
-    scale.value = withRepeat(withSpring(1),3,true)
-  }, []);
-  const progress = useSharedValue(1);
-  const scale = useSharedValue(2);
-  const reanimatedStyle = useAnimatedStyle(() => {
+  const rStyle = useAnimatedStyle(() => {
     return {
-      opacity: progress.value,
-      borderRadius: (progress.value *SIZE)/2,
-      transform:[{scale: scale.value},{rotate: handleRotation(progress)}]
+      transform: [
+        {
+          translateX: translateX.value,
+        },
+        {
+          translateY: translateY.value,
+        },
+      ],
     };
   });
 
-
-
   return (
-    <View style={styles.container}>
-      <Animated.View
-        style={
-          [{ height: SIZE, width: SIZE, backgroundColor: "blue" },
-            reanimatedStyle,
-          ]} />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <View style={styles.circle}>
+          <PanGestureHandler onGestureEvent={panGestureEvent}>
+            <Animated.View style={[styles.square, rStyle]} />
+          </PanGestureHandler>
+        </View>
+      </View>
+    </GestureHandlerRootView>
   );
-
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  square: {
+    width: SIZE,
+    height: SIZE,
+    backgroundColor: 'rgba(150, 200, 256, 0.9)',
+    borderRadius: 20,
+  },
+  circle: {
+    width: CIRCLE_RADIUS * 2,
+    height: CIRCLE_RADIUS * 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: CIRCLE_RADIUS,
+    borderWidth: 5,
+    borderColor: 'rgba(200, 150, 256, 0.9)',
+  },
+});
